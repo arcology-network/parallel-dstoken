@@ -6,7 +6,9 @@ The original ds-token implementation is available at https://github.com/dapphub/
 
 ## Why ds-token
 
-We choose the ds-token because it is simple enough for smart contract developers to easily understand. On the other hand, it is also complex enough to cover some of challeges developers may be facing in their daily work. The mainly purpose of the modification is to demonstrate how Arcology's concurrency library can help with parallelizing a standard ERC20 implemention to handle concurrent user calls.
+We choose the ds-token because it is simple enough for smart contract developers to easily understand. On the other hand, it is also complex enough to cover some of challeges developers may be facing in their daily work when considering possible code parallelization. 
+
+The mainly purpose of the modification is to demonstrate how Arcology's concurrency library can help with parallelizing a standard ERC20 implemention to handle concurrent user calls.
 
 ## What is the difference
 
