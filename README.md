@@ -21,7 +21,7 @@ The key to effective parallelization is to make avoid conflict whereever possibl
 
 ## Performance Gain
 
-The [intro-contract parallelization]() only allows concurrent calls to different contracts. However, it is totally incapable of dealing with concurrent calls to the same contracts or even the same interfaces of the same contracts.
+The intro-contract parallelization allows concurrent calls to different contracts. However, it is totally incapable of dealing with concurrent calls to the same contracts or even the same interfaces of the same contracts.
 
 For example, if there are 1K of users calls to the mint interface, the system has to execute them one by one by one even with the inter-contract parallelization enabled. Any parallel execution attempt only results in massive transaction rollbacks.
 
