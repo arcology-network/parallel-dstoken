@@ -1,8 +1,16 @@
 # Parallellized dstoken
 
+- [Parallellized dstoken](#parallellized-dstoken)
+  - [1. Introduction](#1-introduction)
+  - [2.  Background](#2--background)
+  - [3. Why ds-token](#3-why-ds-token)
+  - [4. What is the Difference](#4-what-is-the-difference)
+  - [5. Performance Gain](#5-performance-gain)
+  - [6. Tests](#6-tests)
+
 ## 1. Introduction
 
-The original ds-token implementation is available at https://github.com/dapphub/ds-token , which is A simple and sufficient ERC20 implementation under GPL-3.0 License.The original implementaion is pretty self explantory so we are not going to explain it in detail.
+The original ds-token implementation is available at https://github.com/dapphub/ds-token , which is A simple and sufficient ERC20 implementation under GPL-3.0 License.The original implementaion is pretty self explantory so we are not going to explain it in detail.  If you are only interested in trying Arcology testnet out without diving into specific technical details, then [please check this document](./test-scripts.md) out for an easier start.
 
 ## 2.  Background
 
