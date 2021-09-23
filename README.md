@@ -10,7 +10,7 @@
 
 ## 1. Introduction
 
-The original ds-token implementation is available at https://github.com/dapphub/ds-token , which is A simple and sufficient ERC20 implementation under GPL-3.0 License.The original implementaion is pretty self explantory so we are not going to explain it in detail.  If you are only interested in trying Arcology testnet out without diving into specific technical details, then [please check this document](./test-scripts.md) out for an easier start.
+The original ds-token implementation is available at https://github.com/dapphub/ds-token , which is A simple and sufficient ERC20 implementation under GPL-3.0 License.The original implementaion is pretty self explantory so we are not going to explain it in detail.  If you are only interested in trying Arcology testnet out without diving into specific technical details, then [please check this document](./parallel-dstoken-test-scripts.md) out for an easier start.
 
 ## 2.  Background
 
