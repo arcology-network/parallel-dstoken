@@ -19,6 +19,8 @@ cd ds_token
 python deploy.py ./contracts/ http://192.138.1.103:8080 ab3884806d0351e807b2e17a26ed38238deacfa53cc3c552a27bd7d62fbfb987
 ```
 
+![alt text](./img/ds-token-deployment.png)
+
 ### 2.1. Mint Tokens
 
 ```sh
