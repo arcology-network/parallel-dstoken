@@ -10,6 +10,7 @@
 ## 1. Introduction
 
 The dstoken was developed by MakerDAO and has been widely used in some popular applications like DAI. The version in the client docker has been optimized to allow concurrent execution.
+Please replace the IP address `192.138.1.103` with your own node cluster IP.
 
 ## 2. Deploy the Contract
 
