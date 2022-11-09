@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity >=0.4.23;
+pragma solidity >=0.4.23 <0.7.0;
 
 import "./math.sol";
 import "./auth.sol";
@@ -24,19 +24,20 @@ import "./ConcurrentLibInterface.sol";
 contract DSToken is DSMath, DSAuth {
     bool                                              public  stopped;
     uint256                                           public  totalSupply;
+    mapping (address => uint256)                      public  balanceOf;
+    mapping (address => mapping (address => uint256)) public  allowance;
     bytes32                                           public  symbol;
-    uint256                                           public  decimals = 18; // standard token precision. override to customize
+    uint8                                             public  decimals = 18; // standard token precision. override to customize
     bytes32                                           public  name = "";     // Optional token name
-    ConcurrentHashMap constant hashmap = ConcurrentHashMap(0x81);
-    ConcurrentQueue constant queue = ConcurrentQueue(0x82);
+
+    DynamicArray constant darray = DynamicArray(0x84);
     System constant system = System(0xa1);
 
     constructor(bytes32 symbol_) public {
         symbol = symbol_;
-        hashmap.create("balanceOf", int32(ConcurrentLib.DataType.ADDRESS), int32(ConcurrentLib.DataType.UINT256));
-        hashmap.create("allowance", int32(ConcurrentLib.DataType.UINT256), int32(ConcurrentLib.DataType.UINT256));
-        queue.create("totalSupplyAdd", uint256(ConcurrentLib.DataType.UINT256));
-        queue.create("totalSupplySub", uint256(ConcurrentLib.DataType.UINT256));
+
+        darray.create("totalSupplyAdd", uint256(ConcurrentLib.DataType.UINT256));
+        darray.create("totalSupplySub", uint256(ConcurrentLib.DataType.UINT256));
         system.createDefer("updateTotalSupply", "updateTotalSupply(string)");
     }
 
@@ -46,6 +47,7 @@ contract DSToken is DSMath, DSAuth {
     event Burn(address indexed guy, uint wad);
     event Stop();
     event Start();
+
     event TotalSupply(uint256);
 
     modifier stoppable {
@@ -58,7 +60,7 @@ contract DSToken is DSMath, DSAuth {
     }
 
     function approve(address guy, uint wad) public stoppable returns (bool) {
-        hashmap.set("allowance", getAllowanceKey(msg.sender, guy), wad);
+        allowance[msg.sender][guy] = wad;
 
         emit Approval(msg.sender, guy, wad);
 
@@ -74,19 +76,14 @@ contract DSToken is DSMath, DSAuth {
         stoppable
         returns (bool)
     {
-        if (src != msg.sender) {
-            uint256 allowanceKey = getAllowanceKey(src, msg.sender);
-            uint allowance = hashmap.getUint256("allowance", allowanceKey);
-            if (allowance != uint(-1)) {
-                require(allowance >= wad, "ds-token-insufficient-approval");
-                hashmap.set("allowance", allowanceKey, sub(allowance, wad));
-            }
+        if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
+            require(allowance[src][msg.sender] >= wad, "ds-token-insufficient-approval");
+            allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
 
-        uint256 balanceOfSrc = hashmap.getUint256("balanceOf", src);
-        require(balanceOfSrc >= wad, "ds-token-insufficient-balance");
-        hashmap.set("balanceOf", src, sub(balanceOfSrc, wad));
-        hashmap.set("balanceOf", dst, add(hashmap.getUint256("balanceOf", dst), wad));
+        require(balanceOf[src] >= wad, "ds-token-insufficient-balance");
+        balanceOf[src] = sub(balanceOf[src], wad);
+        balanceOf[dst] = add(balanceOf[dst], wad);
 
         emit Transfer(src, dst, wad);
 
@@ -115,28 +112,27 @@ contract DSToken is DSMath, DSAuth {
     }
 
     function mint(address guy, uint wad) public auth stoppable {
-        hashmap.set("balanceOf", guy, add(hashmap.getUint256("balanceOf", guy), wad));
-        queue.pushUint256("totalSupplyAdd", wad);
-        system.callDefer("updateTotalSupply");
+        balanceOf[guy] = add(balanceOf[guy], wad);
+        // totalSupply = add(totalSupply, wad);
         emit Mint(guy, wad);
+
+        darray.pushBack("totalSupplyAdd", wad);
+        system.callDefer("updateTotalSupply");
     }
 
     function burn(address guy, uint wad) public auth stoppable {
-        if (guy != msg.sender) {
-            uint256 allowanceKey = getAllowanceKey(guy, msg.sender);
-            uint allowance = hashmap.getUint256("allowance", allowanceKey);
-            if (allowance != uint(-1)) {
-                require(allowance >= wad, "ds-token-insufficient-approval");
-                hashmap.set("allowance", allowanceKey, sub(allowance, wad));
-            }
+        if (guy != msg.sender && allowance[guy][msg.sender] != uint(-1)) {
+            require(allowance[guy][msg.sender] >= wad, "ds-token-insufficient-approval");
+            allowance[guy][msg.sender] = sub(allowance[guy][msg.sender], wad);
         }
 
-        uint256 balance = hashmap.getUint256("balanceOf", guy);
-        require(balance >= wad, "ds-token-insufficient-balance");
-        hashmap.set("balanceOf", guy, sub(balance, wad));
-        queue.pushUint256("totalSupplySub", wad);
-        system.callDefer("updateTotalSupply");
+        require(balanceOf[guy] >= wad, "ds-token-insufficient-balance");
+        balanceOf[guy] = sub(balanceOf[guy], wad);
+        // totalSupply = sub(totalSupply, wad);
         emit Burn(guy, wad);
+
+        darray.pushBack("totalSupplySub", wad);
+        system.callDefer("updateTotalSupply");
     }
 
     function stop() public auth {
@@ -149,25 +145,24 @@ contract DSToken is DSMath, DSAuth {
         emit Start();
     }
 
-    function setName(bytes32 name_) external auth {
+
+    function setName(bytes32 name_) public auth {
         name = name_;
     }
 
     function updateTotalSupply(string memory) public {
-        uint256 length = queue.size("totalSupplyAdd");
+        uint256 length = darray.length("totalSupplyAdd");
         for (uint256 i = 0; i < length; i++) {
-            uint256 value = queue.popUint256("totalSupplyAdd");
+            uint256 value = darray.popFrontUint256("totalSupplyAdd");
             totalSupply = add(totalSupply, value);
         }
-        length = queue.size("totalSupplySub");
+
+        length = darray.length("totalSupplySub");
         for (uint256 i = 0; i < length; i++) {
-            uint256 value = queue.popUint256("totalSupplySub");
+            uint256 value = darray.popFrontUint256("totalSupplySub");
             totalSupply = sub(totalSupply, value);
         }
+        
         emit TotalSupply(totalSupply);
-    }
-
-    function getAllowanceKey(address a1, address a2) private pure returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(a1, a2)));
     }
 }

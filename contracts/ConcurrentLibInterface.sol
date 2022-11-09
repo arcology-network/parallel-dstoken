@@ -147,3 +147,33 @@ contract ConcurrentQueue {
     /// @return the entry removed
     function popBytes(string calldata id) external returns(bytes memory);
 }
+
+contract DynamicArray {
+    function create(string calldata id, uint256 elemType) external;
+    function length(string calldata id) external view returns(uint256);
+
+    function pushBack(string calldata id, uint256 elem) external;
+    function pushBack(string calldata id, address elem) external;
+    function pushBack(string calldata id, bytes calldata elem) external;
+
+    function tryPopFrontUint256(string calldata id) external returns(uint256, bool);
+    function tryPopFrontAddress(string calldata id) external returns(address, bool);
+    function tryPopFrontBytes(string calldata id) external returns(bytes memory, bool);
+    function popFrontUint256(string calldata id) external returns(uint256);
+    function popFrontAddress(string calldata id) external returns(address);
+    function popFrontBytes(string calldata id) external returns(bytes memory);
+
+    function tryPopBackUint256(string calldata id) external returns(uint256, bool);
+    function tryPopBackAddress(string calldata id) external returns(address, bool);
+    function tryPopBackBytes(string calldata id) external returns(bytes memory, bool);
+    function popBackUint256(string calldata id) external returns(uint256);
+    function popBackAddress(string calldata id) external returns(address);
+    function popBackBytes(string calldata id) external returns(bytes memory);
+
+    function tryGetUint256(string calldata id, uint256 index) external returns(uint256, bool);
+    function tryGetAddress(string calldata id, uint256 index) external returns(address, bool);
+    function tryGetBytes(string calldata id, uint256 index) external returns(bytes memory, bool);
+    function getUint256(string calldata id, uint256 index) external returns(uint256);
+    function getAddress(string calldata id, uint256 index) external returns(address);
+    function getBytes(string calldata id, uint256 index) external returns(bytes memory);
+}
