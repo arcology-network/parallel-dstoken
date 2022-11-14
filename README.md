@@ -10,13 +10,13 @@
 
 ## 1. Introduction
 
-The original ds-token implementation is available at https://github.com/dapphub/ds-token , which is A simple and sufficient ERC20 implementation under GPL-3.0 License.The original implementaion is pretty self explantory so we are not going to explain it in detail.  If you are only interested in trying Arcology testnet out without diving into specific technical details, then [please check this document](./parallel-dstoken-test-scripts.md) out for an easier start.
+The original ds-token implementation is available at https://github.com/dapphub/ds-token , which is A simple and sufficient ERC20 implementation under GPL-3.0 License.The original implementation is pretty self explanatory so we are not going to explain it in detail.  If you are only interested in trying Arcology testnet out without diving into specific technical details, then [please check this document](./parallel-dstoken-test-scripts.md) out for an easier start.
 
 ## 2.  Background
 
-The inter-contract parallelization is relatively straighfoward and intuitive. In many cases, transactions calling different contracts belong to different application can run in parallel easily, and it is what majority of blockchain scaling solutions like sharding and sidechains are trying to achieve.
+The inter-contract parallelization is relatively straightforward and intuitive. In many cases, transactions calling different contracts belong to different application can run in parallel easily, and it is what majority of blockchain scaling solutions like sharding and sidechains are trying to achieve.
 
-However, there is another even more challenging scenario in which mulitple transactions are calling the same contract. It is very common for popular applications to have huge incoming user calls. To the best of our knowledge, there is no solution available elsewhere today.
+However, there is another even more challenging scenario in which multiple transactions are calling the same contract. It is very common for popular applications to have huge incoming user calls. To the best of our knowledge, there is no solution available elsewhere today.
 
 The main purpose of the this ERC20 showcase is to demonstrate how our concurrency framework  takes one step further to help handle **large volumes of concurrent user calls to the same contract**.
 
@@ -26,18 +26,16 @@ We chose ds-token mainly because it is simple enough for smart contract develope
 
 ## 4. What is the Difference
 
-The key to the effective parallelization is to avoid conflicts whereever possible. Conflicts happen when some shared states are accessed by multiple transactions simultaneously.
-
-We made the minor modifications to the original implementation with tools availalbe in our concurreny library to make parallelization possible. In general, we substituted the majority of global variables with local ones. We also used the deferred functions to handle the ones that couldn't be easily replaced. Please check out the [concurrent programming guide]() for details.
+The key to the effective parallelization is to avoid conflicts wherever possible. Conflicts happen when some shared states are accessed by multiple transactions simultaneously. We made the minor modifications to the original implementation with tools available in our concurrency library to make parallelization possible. In general, we substituted the majority of global variables with local ones. We also used a deferred function to handle the ones that couldn't be easily replaced. Please check out the [concurrent programming guide](https://docs.arcology.network/arcology-concurrent-programming-guide/) for details.
 
 The changes are:
 
-- Substituted two global variables: balanceOf, allowance with a ConcurrentHashMap
-- Moved totalSupply to a deferred function
+- Temporarily saved the delta values generated in the 'mint' and 'burn' calls to a concurrent array. 
+- Moved totalSupply calculation to a deferred function.
 
 ## 5. Performance Gain
 
-The new implementation allows parallel processing of concurrent calls to the same contract/interface. Given enough resources, the system can process all the transactions simultaneouly without causing any conflict of rollback at all.
+The new implementation allows parallel processing of concurrent calls to the same contract/interface. Given enough resources, the system can process all the transactions simultaneously without causing any conflict of rollback at all.
 
 ## 6. Tests
 

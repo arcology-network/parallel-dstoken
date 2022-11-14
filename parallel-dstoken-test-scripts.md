@@ -24,11 +24,11 @@ python deploy.py ./contracts/ http://192.138.1.103:8080 ab3884806d0351e807b2e17a
 ### 2.1. Mint Tokens
 
 ```sh
-python sendtxs.py http://192.138.1.103:8080 data/ds_token/ds_token_mint_200.out
+>python sendtxs.py http://192.138.1.103:8080 data/ds_token/ds_token_mint_200.out
 ```
 
 ### 2.2. Transfer Tokens
 
 ```sh
-python sendtxs.py http://192.138.1.103:8080 data/ds_token/ds_token__100.out
+>python sendtxs.py http://192.138.1.103:8080 data/ds_token/ds_token__100.out
 ```
