@@ -24,7 +24,7 @@ The main purpose of the this ERC20 showcase is to demonstrate how our concurrenc
 
 We chose ds-token mainly because it is simple enough for smart contract developers to easily understand what it is trying to do. On top of that, it is also complex enough to cover some of challenges developers may face in their daily work when considering possible code parallelization.
 
-## 4. What is the Difference
+## 4. Differences
 
 The key to the effective parallelization is to avoid conflicts wherever possible. Conflicts happen when some shared states are accessed by multiple transactions simultaneously. We made the minor modifications to the original implementation with tools available in our concurrency library to make parallelization possible. In general, we substituted the majority of global variables with local ones. We also used a deferred function to handle the ones that couldn't be easily replaced. Please check out the [concurrent programming guide](https://docs.arcology.network/arcology-concurrent-programming-guide/) for details.
 
