@@ -15,11 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity >=0.4.23 <0.7.0;
+pragma solidity >=0.4.23;
 
 import "./math.sol";
 import "./auth.sol";
-import "./ConcurrentLibInterface.sol";
+import "./ConcurrentLib.sol";
 
 contract DSToken is DSMath, DSAuth {
     bool                                              public  stopped;
@@ -28,17 +28,21 @@ contract DSToken is DSMath, DSAuth {
     mapping (address => mapping (address => uint256)) public  allowance;
     bytes32                                           public  symbol;
     uint8                                             public  decimals = 18; // standard token precision. override to customize
-    bytes32                                           public  name = "";     // Optional token name
+    string                                            public  name = "";     // Optional token name
 
-    DynamicArray constant darray = DynamicArray(0x84);
-    System constant system = System(0xa1);
+    using Concurrency for Concurrency.Array;
+    using Concurrency for Concurrency.Deferred;
+
+    Concurrency.Array totalSupplyAdd;
+    Concurrency.Array totalSupplySub;
+    Concurrency.Deferred deferred;
 
     constructor(bytes32 symbol_) public {
         symbol = symbol_;
 
-        darray.create("totalSupplyAdd", uint256(ConcurrentLib.DataType.UINT256));
-        darray.create("totalSupplySub", uint256(ConcurrentLib.DataType.UINT256));
-        system.createDefer("updateTotalSupply", "updateTotalSupply(string)");
+        totalSupplyAdd.Init("totalSupplyAdd", Concurrency.DataType.UINT256);
+        totalSupplySub.Init("totalSupplySub", Concurrency.DataType.UINT256);
+        deferred.Init("updateTotalSupply", "updateTotalSupply(string)");
     }
 
     event Approval(address indexed src, address indexed guy, uint wad);
@@ -116,8 +120,8 @@ contract DSToken is DSMath, DSAuth {
         // totalSupply = add(totalSupply, wad);
         emit Mint(guy, wad);
 
-        darray.pushBack("totalSupplyAdd", wad);
-        system.callDefer("updateTotalSupply");
+        totalSupplyAdd.PushBack(wad);
+        deferred.Call();
     }
 
     function burn(address guy, uint wad) public auth stoppable {
@@ -131,8 +135,8 @@ contract DSToken is DSMath, DSAuth {
         // totalSupply = sub(totalSupply, wad);
         emit Burn(guy, wad);
 
-        darray.pushBack("totalSupplySub", wad);
-        system.callDefer("updateTotalSupply");
+        totalSupplySub.PushBack(wad);
+        deferred.Call();
     }
 
     function stop() public auth {
@@ -146,20 +150,20 @@ contract DSToken is DSMath, DSAuth {
     }
 
 
-    function setName(bytes32 name_) public auth {
+    function setName(string memory name_) public auth {
         name = name_;
     }
 
     function updateTotalSupply(string memory) public {
-        uint256 length = darray.length("totalSupplyAdd");
+        uint256 length = totalSupplyAdd.Length();
         for (uint256 i = 0; i < length; i++) {
-            uint256 value = darray.popFrontUint256("totalSupplyAdd");
+            uint256 value = totalSupplyAdd.PopFrontUint256();
             totalSupply = add(totalSupply, value);
         }
 
-        length = darray.length("totalSupplySub");
+        length = totalSupplySub.Length();
         for (uint256 i = 0; i < length; i++) {
-            uint256 value = darray.popFrontUint256("totalSupplySub");
+            uint256 value = totalSupplySub.PopFrontUint256();
             totalSupply = sub(totalSupply, value);
         }
         
