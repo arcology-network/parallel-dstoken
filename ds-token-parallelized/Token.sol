@@ -15,34 +15,29 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity >=0.4.23;
+// This is demonstration for the use of Arcology's concurrent library to parallelize the ERC20 token contract.
+// The original contract is modified to use the U256Cum library to parallelize the mint and burn functions.
+// The original contract can be found here: https://github.com/dapphub/ds-token
 
-import "./math.sol";
-import "./auth.sol";
-import "./ConcurrentLib.sol";
+// This is demo only and not for production use.
+
+pragma solidity >=0.4.23 <0.7.0;
+
+import "../ds-auth/src/auth.sol";
+import "../ds-math/src/math.sol";
+import "../../concurrentlib/lib/commutative/U256Cum.sol";
 
 contract DSToken is DSMath, DSAuth {
     bool                                              public  stopped;
     uint256                                           public  totalSupply;
     mapping (address => uint256)                      public  balanceOf;
     mapping (address => mapping (address => uint256)) public  allowance;
-    bytes32                                           public  symbol;
+    string                                            public  symbol;
     uint8                                             public  decimals = 18; // standard token precision. override to customize
     string                                            public  name = "";     // Optional token name
 
-    using Concurrency for Concurrency.Array;
-    using Concurrency for Concurrency.Deferred;
-
-    Concurrency.Array totalSupplyAdd;
-    Concurrency.Array totalSupplySub;
-    Concurrency.Deferred deferred;
-
-    constructor(bytes32 symbol_) public {
+    constructor(string memory symbol_) public {
         symbol = symbol_;
-
-        totalSupplyAdd.Init("totalSupplyAdd", Concurrency.DataType.UINT256);
-        totalSupplySub.Init("totalSupplySub", Concurrency.DataType.UINT256);
-        deferred.Init("updateTotalSupply", "updateTotalSupply(string)");
     }
 
     event Approval(address indexed src, address indexed guy, uint wad);
@@ -51,8 +46,6 @@ contract DSToken is DSMath, DSAuth {
     event Burn(address indexed guy, uint wad);
     event Stop();
     event Start();
-
-    event TotalSupply(uint256);
 
     modifier stoppable {
         require(!stopped, "ds-stop-is-stopped");
@@ -117,11 +110,8 @@ contract DSToken is DSMath, DSAuth {
 
     function mint(address guy, uint wad) public auth stoppable {
         balanceOf[guy] = add(balanceOf[guy], wad);
-        // totalSupply = add(totalSupply, wad);
+        totalSupply = add(totalSupply, wad);
         emit Mint(guy, wad);
-
-        totalSupplyAdd.PushBack(wad);
-        deferred.Call();
     }
 
     function burn(address guy, uint wad) public auth stoppable {
@@ -132,11 +122,8 @@ contract DSToken is DSMath, DSAuth {
 
         require(balanceOf[guy] >= wad, "ds-token-insufficient-balance");
         balanceOf[guy] = sub(balanceOf[guy], wad);
-        // totalSupply = sub(totalSupply, wad);
+        totalSupply = sub(totalSupply, wad);
         emit Burn(guy, wad);
-
-        totalSupplySub.PushBack(wad);
-        deferred.Call();
     }
 
     function stop() public auth {
@@ -152,21 +139,5 @@ contract DSToken is DSMath, DSAuth {
 
     function setName(string memory name_) public auth {
         name = name_;
-    }
-
-    function updateTotalSupply(string memory) public {
-        uint256 length = totalSupplyAdd.Length();
-        for (uint256 i = 0; i < length; i++) {
-            uint256 value = totalSupplyAdd.PopFrontUint256();
-            totalSupply = add(totalSupply, value);
-        }
-
-        length = totalSupplySub.Length();
-        for (uint256 i = 0; i < length; i++) {
-            uint256 value = totalSupplySub.PopFrontUint256();
-            totalSupply = sub(totalSupply, value);
-        }
-        
-        emit TotalSupply(totalSupply);
     }
 }

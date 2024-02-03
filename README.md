@@ -2,42 +2,44 @@
 
 - [Parallellized dstoken](#parallellized-dstoken)
   - [1. Introduction](#1-introduction)
-  - [2.  Background](#2--background)
-  - [3. Why ds-token](#3-why-ds-token)
-  - [4. What is the Difference](#4-what-is-the-difference)
-  - [5. Performance Gain](#5-performance-gain)
-  - [6. Tests](#6-tests)
+    - [1.1. Quick Start](#11-quick-start)
+    - [1.2. Goal](#12-goal)
+    - [1.3. Why ds-token](#13-why-ds-token)
+  - [2. Benefits](#2-benefits)
+  - [3. Changes](#3-changes)
+  - [4. Performance](#4-performance)
 
 ## 1. Introduction
 
-The original ds-token implementation is available at https://github.com/dapphub/ds-token , which is A simple and sufficient ERC20 implementation under GPL-3.0 License.The original implementation is pretty self explanatory so we are not going to explain it in detail.  If you are only interested in trying Arcology testnet out without diving into specific technical details, then [please check this document](./parallel-dstoken-test-scripts.md) out for an easier start.
+The original ds-token implementation is available at https://github.com/dapphub/ds-token. It is A simple and sufficient ERC20 implementation under GPL-3.0 License.The original implementation is pretty self explanatory so we are not going to explain it in detail. 
 
-## 2.  Background
+### 1.1. Quick Start
 
-The inter-contract parallelization is relatively straightforward and intuitive. In many cases, transactions calling different contracts belong to different application can run in parallel easily, and it is what majority of blockchain scaling solutions like sharding and sidechains are trying to achieve.
+If you are only interested in trying Arcology testnet out without diving into specific technical details, then [please check this document](./parallel-dstoken-test-scripts.md) out for an easier start.
 
-However, there is another even more challenging scenario in which multiple transactions are calling the same contract. It is very common for popular applications to have huge incoming user calls. To the best of our knowledge, there is no solution available elsewhere today.
+### 1.2. Goal
 
-The main purpose of the this ERC20 showcase is to demonstrate how our concurrency framework  takes one step further to help handle **large volumes of concurrent user calls to the same contract**.
+In many cases, transactions calling different contracts belong to different application can run in parallel easily, and it is what majority of blockchain scaling solutions like sharding and sidechains are trying to achieve. Another even more challenging scenario is where multiple transactions are calling the same contract. The main goal of the this ERC20 showcase is to demonstrate how Arcology's concurent library can help handle **large volumes of concurrent user calls to the same contract**.
 
-## 3. Why ds-token
+### 1.3. Why ds-token
 
-We chose ds-token mainly because it is simple enough for smart contract developers to easily understand what it is trying to do. On top of that, it is also complex enough to cover some of challenges developers may face in their daily work when considering possible code parallelization.
+The ds-token is chosen because it is simple enough for smart contract developers to easily understand what it is trying to do. On top of that, it is also complex enough to cover some of challenges developers may face in their daily work when considering possible code parallelization.
 
-## 4. Differences
+## 2. Benefits
 
-The key to the effective parallelization is to avoid conflicts wherever possible. Conflicts happen when some shared states are accessed by multiple transactions simultaneously. We made the minor modifications to the original implementation with tools available in our concurrency library to make parallelization possible. In general, we substituted the majority of global variables with local ones. We also used a deferred function to handle the ones that couldn't be easily replaced. Please check out the [concurrent programming guide](https://docs.arcology.network/arcology-concurrent-programming-guide/) for details.
+The new implementation allows processing of concurrent calls to the same functions of the contract. For example, the `mint` and the`burn` function can be called by multiple users at the same time without any problem.
 
-The changes are:
+## 3. Changes
 
-- Temporarily saved the delta values generated in the 'mint' and 'burn' calls to a concurrent array. 
-- Moved totalSupply calculation to a deferred function.
+Some modifications to the original implementation have been made with tools available in our concurrency library to make parallelization possible. arcology-concurrent-programming-guide/) for details. The following changes have been made to the original implementation:
 
-## 5. Performance Gain
+- Replace the global variables `totalSupply` and `allowance` with a commutative `uint256` from the `concurrentlib`.
 
-The new implementation allows parallel processing of concurrent calls to the same contract/interface. Given enough resources, the system can process all the transactions simultaneously without causing any conflict of rollback at all.
+- The `mint` and `burn` operate on the `totalSupply` by call `add` and `sub` on the `totalSupply`, instead of directly modifying it.
 
-## 6. Tests
+## 4. Performance 
+
+<!-- ## 5. Tests
 
 - [Interactive](/doc/parallellized-dstoken-interactive.md)
-- [Benchmarking](/doc/parallellized-dstoken-benchmarking.md)
+- [Benchmarking](/doc/parallellized-dstoken-benchmarking.md) -->
