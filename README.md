@@ -11,7 +11,7 @@
 
 ## 1. Introduction
 
-The original ds-token implementation is available at https://github.com/dapphub/ds-token. It is A simple and sufficient ERC20 implementation under GPL-3.0 License.The original implementation is pretty self explanatory so we are not going to explain it in detail. 
+The original ds-token implementation is available at https://github.com/dapphub/ds-token. It is A simple and sufficient ERC20 implementation under GPL-3.0 License.The original implementation is pretty self explanatory. 
 
 In many cases, transactions calling different contracts belong to different application can run in parallel easily, and it is what majority of blockchain scaling solutions like sharding and sidechains are trying to achieve. Another even more challenging scenario is where multiple transactions are calling the same contract. 
 
@@ -21,7 +21,8 @@ If you are only interested in trying Arcology testnet out without diving into sp
 
 ### 1.2. Goal
 
-The main goal of the this ERC20 showcase is to demonstrate how Arcology's concurent library can help handle **large volumes of concurrent user calls to the same contract**.
+The main goal of the this ERC20 showcase is to demonstrate how Arcology's [concurent library](https://github.com/arcology-network/concurrentlib)
+ can help handle **large volumes of concurrent user calls to the same contract**.
 
 ### 1.3. Why ds-token
 
