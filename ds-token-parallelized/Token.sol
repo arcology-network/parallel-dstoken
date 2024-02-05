@@ -25,7 +25,7 @@ pragma solidity >=0.4.23 <0.7.0;
 
 import "../ds-auth/src/auth.sol";
 import "../ds-math/src/math.sol";
-import "../../concurrentlib/lib/commutative/U256Cum.sol";
+import "../../../concurrentlib/lib/commutative/U256Cum.sol";
 
 contract DSToken is DSMath, DSAuth {
     bool                                              public  stopped;
