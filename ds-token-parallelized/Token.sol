@@ -28,13 +28,17 @@ import "../ds-math/src/math.sol";
 import "@arcologynetwork/concurrentlib/lib/commutative/U256Cum.sol";
 
 contract DSToken is DSMath, DSAuth {
-    bool                                              public  stopped;
-    uint256                                           public  totalSupply;
-    mapping (address => uint256)                      public  balanceOf;
-    mapping (address => mapping (address => uint256)) public  allowance;
-    string                                            public  symbol;
-    uint8                                             public  decimals = 18; // standard token precision. override to customize
-    string                                            public  name = "";     // Optional token name
+    bool                                                     public  stopped;
+    // uint256                                               public  totalSupply;
+    U256Cumulative                                           public  totalSupply;
+    // mapping (address => uint256)                          public  balanceOf;
+    mapping (address => U256Cumulative)                      public  balanceOf;
+    // mapping (address => mapping (address => uint256)) public  allowance;
+    mapping (address => mapping (address => U256Cumulative)) public  allowance;
+
+    string                                                   public  symbol;
+    uint8                                                    public  decimals = 18; // standard token precision. override to customize
+    string                                                   public  name = "";     // Optional token name
 
     constructor(string memory symbol_) public {
         symbol = symbol_;
@@ -78,10 +82,12 @@ contract DSToken is DSMath, DSAuth {
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
 
-        require(balanceOf[src] >= wad, "ds-token-insufficient-balance");
-        balanceOf[src] = sub(balanceOf[src], wad);
-        balanceOf[dst] = add(balanceOf[dst], wad);
+        require(balanceOf[src].get() >= wad, "ds-token-insufficient-balance");
+        // balanceOf[src] = sub(balanceOf[src], wad);
+        balanceOf[src].sub(wad);
 
+        // balanceOf[dst] = add(balanceOf[dst], wad);
+        balanceOf[src].add(wad);
         emit Transfer(src, dst, wad);
 
         return true;
@@ -109,8 +115,10 @@ contract DSToken is DSMath, DSAuth {
     }
 
     function mint(address guy, uint wad) public auth stoppable {
-        balanceOf[guy] = add(balanceOf[guy], wad);
-        totalSupply = add(totalSupply, wad);
+        // balanceOf[guy] = add(balanceOf[guy], wad);
+        balanceOf[guy].add(wad);
+        // totalSupply = add(totalSupply, wad);
+        totalSupply.add(wad);
         emit Mint(guy, wad);
     }
 
@@ -120,9 +128,11 @@ contract DSToken is DSMath, DSAuth {
             allowance[guy][msg.sender] = sub(allowance[guy][msg.sender], wad);
         }
 
-        require(balanceOf[guy] >= wad, "ds-token-insufficient-balance");
-        balanceOf[guy] = sub(balanceOf[guy], wad);
-        totalSupply = sub(totalSupply, wad);
+        require(balanceOf[guy].get() >= wad, "ds-token-insufficient-balance");
+        // balanceOf[guy] = sub(balanceOf[guy], wad);
+        balanceOf[guy].add(wad);
+        // totalSupply = sub(totalSupply, wad);
+        totalSupply.sub(wad);
         emit Burn(guy, wad);
     }
 
