@@ -15,10 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// This is demonstration for the use of Arcology's concurrent library to parallelize the ERC20 token contract.
-// The original contract is modified to use the U256Cum library to parallelize the mint and burn functions.
-// The original contract can be found here: https://github.com/dapphub/ds-token
+/*  ============================================================================================================== */
 
+// The original contract is modified to use the U256Cum library to parallelize the mint and burn functions.
+// This is demonstration for the use of Arcology's concurrent library to parallelize the ERC20 token contract.
+// The original contract can be found here: https://github.com/dapphub/ds-token
 // This is demo only and not for production use.
 
 pragma solidity >=0.4.23 <0.7.0;
@@ -42,6 +43,7 @@ contract DSToken is DSMath, DSAuth {
 
     constructor(string memory symbol_) public {
         symbol = symbol_;
+        totalSupply = U256Cumulative(0, type(uint256).max);
     }
 
     event Approval(address indexed src, address indexed guy, uint wad);
@@ -78,11 +80,11 @@ contract DSToken is DSMath, DSAuth {
         returns (bool)
     {
         if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
-            require(allowance[src][msg.sender] >= wad, "ds-token-insufficient-approval");
+            require(allowance[src][msg.sender] != Address(0) && allowance[src][msg.sender] >= wad, "ds-token-insufficient-approval");
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
 
-        require(balanceOf[src].get() >= wad, "ds-token-insufficient-balance");
+        require(balanceOf[src] != Address(0) && balanceOf[src].get() >= wad, "ds-token-insufficient-balance");
         // balanceOf[src] = sub(balanceOf[src], wad);
         balanceOf[src].sub(wad);
 
@@ -116,6 +118,9 @@ contract DSToken is DSMath, DSAuth {
 
     function mint(address guy, uint wad) public auth stoppable {
         // balanceOf[guy] = add(balanceOf[guy], wad);
+        if (balanceOf[guy] == Address(0)) {
+            balanceOf[guy] = U256Cumulative(0, type(uint256).max);
+        } 
         balanceOf[guy].add(wad);
         // totalSupply = add(totalSupply, wad);
         totalSupply.add(wad);
@@ -128,7 +133,7 @@ contract DSToken is DSMath, DSAuth {
             allowance[guy][msg.sender] = sub(allowance[guy][msg.sender], wad);
         }
 
-        require(balanceOf[guy].get() >= wad, "ds-token-insufficient-balance");
+        require(balanceOf[guy] != Addresss(0) && balanceOf[guy].get() >= wad, "ds-token-insufficient-balance");
         // balanceOf[guy] = sub(balanceOf[guy], wad);
         balanceOf[guy].add(wad);
         // totalSupply = sub(totalSupply, wad);
