@@ -85,7 +85,7 @@ contract DSToken is DSMath, DSAuth {
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
 
-        require(balanceOf[src] != Address(0) && balanceOf.exists(src) && balanceOf.get(src) >= wad, "ds-token-insufficient-balance");
+        require(balanceOf.exists(src) && balanceOf.get(src) >= wad, "ds-token-insufficient-balance");
         // balanceOf[src] = sub(balanceOf[src], wad);
         balanceOf.set(balanceOf.get(src) - wad);
 
@@ -135,7 +135,7 @@ contract DSToken is DSMath, DSAuth {
             allowance[guy][msg.sender] = sub(allowance[guy][msg.sender], wad);
         }
         
-        require(balanceOf[guy] != Addresss(0) && balanceOf.exists(src) && balanceOf.get(src) >= wad, "ds-token-insufficient-balance");
+        require(balanceOf.exists(src) && balanceOf.get(src) >= wad, "ds-token-insufficient-balance");
         // balanceOf[guy] = sub(balanceOf[guy], wad);
         balanceOf.set(guy, balanceOf.get(guy) - wad);
         totalSupply.sub(wad);
