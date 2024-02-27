@@ -22,18 +22,19 @@
 // The original contract can be found here: https://github.com/dapphub/ds-token
 // This is demo only and not for production use.
 
-pragma solidity >=0.4.23;
+pragma solidity >=0.4.23 <0.7.0;
 
 import "../ds-auth/src/auth.sol";
 import "../ds-math/src/math.sol";
 import "@arcologynetwork/concurrentlib/lib/commutative/U256Cum.sol";
+import "@arcologynetwork/concurrentlib/lib/map/AddressUint256.sol";
 
 contract DSToken is DSMath, DSAuth {
     bool                                                     public  stopped;
     // uint256                                               public  totalSupply;
     U256Cumulative                                           public  totalSupply;
     // mapping (address => uint256)                          public  balanceOf;
-    mapping (address => U256Cumulative)                      public  balanceOf;
+    AddressUint256Map                                        public  balanceOf = new AddressUint256Map();
     // mapping (address => mapping (address => uint256)) public  allowance;
     mapping (address => mapping (address => U256Cumulative)) public  allowance;
 
@@ -43,7 +44,7 @@ contract DSToken is DSMath, DSAuth {
 
     constructor(string memory symbol_) public {
         symbol = symbol_;
-        totalSupply = new U256Cumulative(0, type(uint256).max);
+        totalSupply = U256Cumulative(0, type(uint256).max);
     }
 
     event Approval(address indexed src, address indexed guy, uint wad);
@@ -52,25 +53,18 @@ contract DSToken is DSMath, DSAuth {
     event Burn(address indexed guy, uint wad);
     event Stop();
     event Start();
-    event Step(uint step);
-    event Balance(uint256 bal);
 
     modifier stoppable {
         require(!stopped, "ds-stop-is-stopped");
         _;
     }
 
-    function approves(address guy) external returns (bool) {
-        return approve(guy, type(uint256).max);
-        
+    function approve(address guy) external returns (bool) {
+        return approve(guy, uint(-1));
     }
 
-    function approve(address guy, uint256 wad) public stoppable returns (bool) {
-        
-        if (address(allowance[msg.sender][guy]) == address(0)) {
-            allowance[msg.sender][guy] = new U256Cumulative(0, type(uint256).max);
-        }
-        allowance[msg.sender][guy].add(wad);
+    function approve(address guy, uint wad) public stoppable returns (bool) {
+        allowance[msg.sender][guy] = wad;
 
         emit Approval(msg.sender, guy, wad);
 
@@ -86,24 +80,17 @@ contract DSToken is DSMath, DSAuth {
         stoppable
         returns (bool)
     {
-        // if (src != msg.sender && allowance[src][msg.sender] != type(uint).max) {
-        //     require(allowance[src][msg.sender] >= wad, "ds-token-insufficient-approval");
-        //     allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
-        // }
-        if (src != msg.sender && address(allowance[src][msg.sender]) != address(0)) {
-            // require(allowance[src][msg.sender] >= wad, "ds-token-insufficient-approval");
-            allowance[src][msg.sender].sub(wad);
+        if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
+            require(allowance[src][msg.sender] != Address(0) && allowance[src][msg.sender] >= wad, "ds-token-insufficient-approval");
+            allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
 
-
-        require(address(balanceOf[src]) != address(0) , "ds-token-insufficient-balance");
+        require(balanceOf[src] != Address(0) && balanceOf.exists(src) && balanceOf.get(src) >= wad, "ds-token-insufficient-balance");
         // balanceOf[src] = sub(balanceOf[src], wad);
-        balanceOf[src].sub(wad);
+        balanceOf.set(balanceOf.get(src) - wad);
+
         // balanceOf[dst] = add(balanceOf[dst], wad);
-        if (address(balanceOf[dst]) == address(0)) {
-            balanceOf[dst] = new U256Cumulative(0, type(uint256).max);
-        } 
-        balanceOf[dst].add(wad);
+        balanceOf.set(balanceOf.get(dst) + wad);
         emit Transfer(src, dst, wad);
 
         return true;
@@ -121,44 +108,36 @@ contract DSToken is DSMath, DSAuth {
         transferFrom(src, dst, wad);
     }
 
-    function balance(address src) external {
-        //return balanceOf[src].get();
-        emit Balance(balanceOf[src].get());
-    }
 
-    function mints(uint wad) external {
+    function mint(uint wad) external {
         mint(msg.sender, wad);
     }
 
-    function burns(uint wad) external {
+    function burn(uint wad) external {
         burn(msg.sender, wad);
     }
 
     function mint(address guy, uint wad) public auth stoppable {
-        // balanceOf[guy] = add(balanceOf[guy], wad);
-        if (address(balanceOf[guy]) == address(0)) {
-            balanceOf[guy] = new U256Cumulative(0, type(uint256).max);
-        } 
-        balanceOf[guy].add(wad);
+        if (!balanceOf.exists(guy);) {
+            balanceOf.set(guy, 0, wad);
+        } else {            
+            balanceOf.set(guy, balanceOf.get(guy) + wad)
+        }
+
         // totalSupply = add(totalSupply, wad);
         totalSupply.add(wad);
         emit Mint(guy, wad);
     }
 
-    function burn(address guy, uint256 wad) public auth stoppable {
-
-        // if (guy != msg.sender && allowance[guy][msg.sender] != type(uint256).max) {
-        //     require(allowance[guy][msg.sender] >= wad, "ds-token-insufficient-approval");
-        //     allowance[guy][msg.sender] = sub(allowance[guy][msg.sender], wad);
-        // }
-        if (guy != msg.sender && address(allowance[guy][msg.sender]) != address(0)) {
-            allowance[guy][msg.sender].sub(wad);
+    function burn(address guy, uint wad) public auth stoppable {
+        if (guy != msg.sender && allowance[guy][msg.sender] != uint(-1)) {
+            require(allowance[guy][msg.sender] >= wad, "ds-token-insufficient-approval");
+            allowance[guy][msg.sender] = sub(allowance[guy][msg.sender], wad);
         }
-
-        require(address(balanceOf[guy]) != address(0) , "ds-token-insufficient-balance");
+        
+        require(balanceOf[guy] != Addresss(0) && balanceOf.exists(src) && balanceOf.get(src) >= wad, "ds-token-insufficient-balance");
         // balanceOf[guy] = sub(balanceOf[guy], wad);
-        balanceOf[guy].sub(wad);
-        // totalSupply = sub(totalSupply, wad);
+        balanceOf.set(guy, balanceOf.get(guy) - wad);
         totalSupply.sub(wad);
         emit Burn(guy, wad);
     }
